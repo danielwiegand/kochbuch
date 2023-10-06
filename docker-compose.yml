@@ -1,0 +1,25 @@
+version: "3"
+services:
+  shiny-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kochbuch_shiny-server
+    ports:
+      - 3838:3838
+    volumes:
+      - ./kochbuch/:/srv/shiny-server/
+    tty: true
+    restart: always
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:latest
+    container_name: kochbuch_postgres
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=kochbuch
+    restart: always
+    volumes:
+      - ./database/:/var/lib/postgresql/

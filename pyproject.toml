@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "kochbuch"
+version = "0.1.0"
+description = ""
+authors = ["Daniel Wiegand <daniel.a.wiegand@posteo.de>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+shiny = "^0.5.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
