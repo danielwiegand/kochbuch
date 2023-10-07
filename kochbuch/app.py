@@ -5,11 +5,13 @@ app_ui = ui.page_fluid(
     ui.output_text_verbatim("txt"),
 )
 
+
 def server(input, output, session):
     @output
     @render.text
     def txt():
         return f"n*2 is {input.n() * 2}"
+
 
 # This is a shiny.App object. It must be named `app`.
 app = App(app_ui, server)

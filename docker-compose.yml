@@ -9,6 +9,7 @@ services:
       - 3838:3838
     volumes:
       - ./kochbuch/:/srv/shiny-server/
+      - ./:/app/
     tty: true
     restart: always
     depends_on:
