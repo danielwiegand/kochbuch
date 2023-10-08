@@ -11,18 +11,18 @@ https://docs.posit.co/shiny-server/
 * Zufälliges Rezept
 * Exportmöglichkeit pdf
 * Neues Rezept einfügen / bearbeiten / Import von Chefkoch
-* Dabei sicherstellen, dass der Titel unique ist
 
 # Deployment
 Siehe https://shiny.posit.co/py/docs/deploy-on-prem.html#open-source-options
 
 
 CREATE TABLE kochbuch (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(200),
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) UNIQUE,
     ingredients TEXT,
     preparation TEXT,
     sweet BOOLEAN,
     salty BOOLEAN,
-    liquid BOOLEAN
+    liquid BOOLEAN,
+    img_name VARCHAR(255)
 );
