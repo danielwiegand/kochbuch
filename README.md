@@ -10,7 +10,7 @@ https://docs.posit.co/shiny-server/
 # Features
 * Zufälliges Rezept
 * Exportmöglichkeit pdf
-* Neues Rezept einfügen / bearbeiten / Import von Chefkoch
+* Code in Module unterteilen
 
 # Deployment
 Siehe https://shiny.posit.co/py/docs/deploy-on-prem.html#open-source-options

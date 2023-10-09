@@ -1,13 +1,20 @@
 from shiny import ui, render, App, reactive
+import shiny.experimental as x
+from shiny.types import FileInfo
+import shutil
 import pandas as pd
 from pathlib import Path
 from sqlalchemy import create_engine, text
-import os
 from dotenv import load_dotenv
 from shinywidgets import output_widget, register_widget
 from ipydatagrid import DataGrid
-
-load_dotenv("/app/.env")
+from bs4 import BeautifulSoup
+import requests
+import re
+from PIL import Image
+from io import BytesIO
+import logging
+import locale
 
 FILTER_SCOPE_OPTIONS = {
     "Titel": "title",
@@ -15,7 +22,7 @@ FILTER_SCOPE_OPTIONS = {
     "Zubereitung": "preparation",
 }
 
-FILTER_MEAL_OPTIONS = {"süß": "sweet", "salzig": "salty", "flüssig": "liquid"}
+FILTER_FLAVOR_OPTIONS = {"süß": "sweet", "salzig": "salty", "flüssig": "liquid"}
 
 app_ui = ui.page_fluid(
     ui.navset_tab(
@@ -37,29 +44,34 @@ app_ui = ui.page_fluid(
                         multiple=True,
                     ),
                     ui.input_selectize(
-                        id="filter_meal",
+                        id="filter_flavor",
                         label="",
-                        choices=list(FILTER_MEAL_OPTIONS.keys()),
-                        selected=list(FILTER_MEAL_OPTIONS.keys()),
+                        choices=list(FILTER_FLAVOR_OPTIONS.keys()),
+                        selected=list(FILTER_FLAVOR_OPTIONS.keys()),
                         multiple=True,
                     ),
-                    ui.input_select("recipe", "Ergebnisse", [], multiple=True),
+                    ui.input_slider(
+                        "quantity_factor", "", value=1, min=0.5, max=5, step=0.5
+                    ),
+                    # ui.input_select("recipe", "Ergebnisse", [], multiple=True),
                 ),
                 ui.panel_main(
-                    ui.output_ui("recipe_image"),
-                    ui.input_slider(
-                        "multiply_factor", "", value=1, min=0.5, max=5, step=0.5
-                    ),
-                    ui.row(
-                        ui.column(
-                            6,
-                            ui.output_text("ingredients"),
-                        ),
-                        ui.column(
-                            6,
-                            ui.output_text("preparation"),
-                        ),
-                    ),
+                    ui.output_ui("recipe_cards"),
+                    # ui.output_ui("recipe_image"),
+                    # ui.output_ui("recipe_title"),
+                    # ui.input_slider(
+                    #     "quantity_factor", "", value=1, min=0.5, max=5, step=0.5
+                    # ),
+                    # ui.row(
+                    #     ui.column(
+                    #         6,
+                    #         ui.output_ui("ingredients"),
+                    #     ),
+                    #     ui.column(
+                    #         6,
+                    #         ui.output_ui("preparation"),
+                    #     ),
+                    # ),
                 ),
             ),
         ),
@@ -101,7 +113,11 @@ app_ui = ui.page_fluid(
                         "new_liquid",
                         label="flüssig",
                     ),
-                    ui.input_action_button("import_recipe", "Import"),
+                    ui.input_file("new_image", label="", accept="image/*"),
+                    ui.panel_conditional(
+                        "input.new_title && input.new_ingredients && input.new_preparation",
+                        ui.input_action_button("import_recipe", "Import"),
+                    ),
                 ),
                 ui.nav(
                     "Rezept verändern",
@@ -116,9 +132,24 @@ app_ui = ui.page_fluid(
                                 "chefkoch_url", label="", placeholder="Chefkoch-URL"
                             ),
                         ),
+                        ui.input_checkbox(
+                            "chefkoch_new_sweet",
+                            label="süß",
+                        ),
+                        ui.input_checkbox(
+                            "chefkoch_new_salty",
+                            label="salzig",
+                        ),
+                        ui.input_checkbox(
+                            "chefkoch_new_liquid",
+                            label="flüssig",
+                        ),
                         ui.column(
                             2,
-                            ui.input_action_button("import_chefkoch", "Import"),
+                            ui.panel_conditional(
+                                "input.chefkoch_url",
+                                ui.input_action_button("import_chefkoch", "Import"),
+                            ),
                         ),
                     ),
                 ),
@@ -128,13 +159,16 @@ app_ui = ui.page_fluid(
 )
 
 
+# TODO Rezepte als card: https://shiny.posit.co/py/api/ExCard.html
+
+
 def server(input, output, session):
     # db_conn = create_engine(
     #     f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@kochbuch_postgres:5432/{os.getenv('POSTGRES_DB')}"
     # ).connect()
 
     db_conn = create_engine(
-        f"postgresql://postgres:postgres@192.168.64.2:5432/kochbuch", echo=True
+        f"postgresql://postgres:postgres@192.168.64.3:5432/kochbuch", echo=True
     )
 
     @reactive.Calc
@@ -181,7 +215,8 @@ def server(input, output, session):
                     [
                         f"{taste} == True"
                         for taste in [
-                            FILTER_MEAL_OPTIONS[meal] for meal in input.filter_meal()
+                            FILTER_FLAVOR_OPTIONS[flavor]
+                            for flavor in input.filter_flavor()
                         ]
                     ]
                 )
@@ -201,13 +236,65 @@ def server(input, output, session):
             )
         )
 
-    @reactive.Effect()
-    def update_displayed_recipes():
-        ui.update_select(
-            id="recipe",
-            choices=filtered_recipes()["title"].tolist(),
-            selected=None,
-        )
+    # @reactive.Effect()
+    # def update_displayed_recipes():
+    #     ui.update_select(
+    #         id="recipe",
+    #         choices=filtered_recipes()["title"].tolist(),
+    #         selected=None,
+    #     )
+
+    @output
+    @render.ui
+    def recipe_cards():
+        recipe_cards = []
+        for recipe in filtered_recipes().itertuples():
+            print(recipe)
+            recipe_cards += [
+                ui.div(
+                    {"style": "width: 300px; float:left;margin:10px; height:300px;"},
+                    x.ui.card(
+                        x.ui.card_header(recipe.title),
+                        x.ui.card_body(
+                            x.ui.card_image(
+                                file=None,
+                                src=recipe.img_name,
+                                style="max-width: 1000px;margin-left:auto; margin-right:auto;",
+                            ),
+                            # ui.input_slider(
+                            #     "quantity_factor", "", value=1, min=0.5, max=5, step=0.5
+                            # ),
+                            ui.row(
+                                ui.column(
+                                    5,
+                                    ui.HTML(
+                                        multiply_ingredient_quantities(
+                                            recipe.ingredients, input.quantity_factor()
+                                        )
+                                    ),
+                                    {
+                                        "style": "max-width:500px; margin-left:auto; margin-right:4.16%;"
+                                    },
+                                ),
+                                ui.column(
+                                    5,
+                                    ui.HTML(recipe.preparation),
+                                    {
+                                        "style": "max-width:500px; margin-left:4.16%; margin-right:auto;"
+                                    },
+                                ),
+                            ),
+                            fillable=False,
+                            padding="10px",
+                        ),
+                        height="300px",
+                        full_screen=True,
+                        style="max-width:1100px; margin-left:auto; margin-right:auto;",
+                    ),
+                )
+            ]
+        # return x.ui.layout_column_wrap("350px", tuple(recipe_cards)
+        return tuple(recipe_cards)
 
     @reactive.Calc
     def selected_recipe():
@@ -219,19 +306,60 @@ def server(input, output, session):
     @render.ui
     def recipe_image():
         img = selected_recipe()["img_name"]
-        return ui.tags.img(src="food.png") if img.empty else ui.tags.img(src=img.item())
+        return (
+            ui.tags.img(src="default.png") if img.empty else ui.tags.img(src=img.item())
+        )
 
     @output
-    @render.text
+    @render.ui
+    def recipe_title():
+        return (
+            ""
+            if selected_recipe()["title"].empty
+            else ui.h1(selected_recipe()["title"].item())
+        )
+
+    def multiply_ingredient_quantities(ingredients: str, multiply_factor: float) -> str:
+        pattern = re.compile(r"([\d,]+)\s*(.*)")
+        lines = ingredients.strip().split("<br />")
+        for i, line in enumerate(lines):
+            match = pattern.match(line)
+            if match:
+                quantity = re.sub(
+                    r",0$",  # remove training zeros
+                    "",
+                    "{:,.1f}".format(  # format to one decimal place, add thousands sep
+                        round(
+                            float(match.group(1).replace(",", ".")) * multiply_factor, 1
+                        )
+                    )
+                    .replace(",", "temp")  # exchange "," and "." (german way)
+                    .replace(".", ",")
+                    .replace("temp", "."),
+                )
+                rest_of_line = match.group(2).strip()
+                lines[i] = quantity + " " + rest_of_line
+        return "<br />".join(lines)
+
+    @output
+    @render.ui
     def ingredients():
         ingredients = selected_recipe()["ingredients"]
-        return "" if ingredients.empty else ingredients.item()
+        if ingredients.empty:
+            return ""
+        else:
+            print(ingredients.item())
+            return ui.HTML(
+                multiply_ingredient_quantities(
+                    ingredients.item(), input.quantity_factor()
+                )
+            )
 
     @output
-    @render.text
+    @render.ui
     def preparation():
         preparation = selected_recipe()["preparation"]
-        return "" if preparation.empty else preparation.item()
+        return "" if preparation.empty else ui.HTML(preparation.item())
 
     # Code related to database updates
 
@@ -280,77 +408,169 @@ def server(input, output, session):
             "Note: Reload the app for changes to take effect.", duration=None
         )
 
+    # Imports
+
+    def insert_recipe_to_db(
+        title: str,
+        ingredients: str,
+        preparation: str,
+        sweet: bool,
+        salty: bool,
+        liquid: bool,
+        img_name: str,
+    ) -> None:
+        insert_statement = """
+            INSERT INTO kochbuch (title, ingredients, preparation, sweet, salty, liquid, img_name)
+            VALUES (:title, :ingredients, :preparation, :sweet, :salty, :liquid, :img_name);
+        """
+
+        if title in recipe_data()["title"].tolist():
+            ui.notification_show("The recipe seems to exist already!", duration=None)
+        else:
+            params = {
+                "title": title,
+                "ingredients": ingredients,
+                "preparation": preparation,
+                "sweet": sweet,
+                "salty": salty,
+                "liquid": liquid,
+                "img_name": img_name,
+            }
+
+            with db_conn.connect() as connection:
+                connection.execute(text(insert_statement), parameters=params)
+                connection.commit()
+
+            ui.notification_show(
+                "Recipe inserted! Reload the app for changes to take effect.",
+                duration=None,
+            )
+
+    def get_image_filename(img_path: str) -> int:
+        img_id = pd.read_sql(
+            "SELECT COUNT(*) FROM kochbuch;",
+            db_conn,
+        ).iloc[0, 0]
+        return str(img_id) + "." + re.findall(r"\.(\w+)$", img_path)[0]
+
+    def save_image_from_url(url: str) -> None:
+        response = requests.get(url)
+        if response.status_code == 200:
+            img_filename = get_image_filename(url)
+            save_path = f"kochbuch/www/{img_filename}"
+            Image.open(BytesIO(response.content)).save(save_path)
+            logging.info(f"Image saved to {save_path}")
+        else:
+            img_filename = "default.png"
+            logging.error(f"Failed to download image from {url}! Using default image.")
+        return img_filename
+
+    def save_image_from_tmp(img_path: str) -> str:
+        img_filename = get_image_filename(img_path)
+        save_path = f"kochbuch/www/{img_filename}"
+        shutil.move(img_path, save_path)
+        return img_filename
+
+    def extract_ingredients(soup: BeautifulSoup, type_: str) -> list:
+        type_class_ = {"ingredients": "td-right", "measures": "td-left"}
+        result = []
+        for td in soup.find_all(class_=type_class_.get(type_)):
+            span_tag = td.find("span")
+            if span_tag:
+                result += [
+                    re.sub(r"\s+", " ", re.sub(r"^\n\s*|\s*$", "", span_tag.text))
+                ]
+            else:
+                result += [""]
+        return result
+
+    def validate_flavor_checkboxes(sweet: reactive, salty: reactive, liquid: reactive):
+        return sweet() + salty() + liquid() > 0
+
     # Import from chefkoch
-    # @reactive.Effect
+    @reactive.Effect
     @reactive.event(input.import_chefkoch)
     def import_from_chefkoch():
-        from bs4 import BeautifulSoup
-        import requests
-        import re
+        if not bool(
+            re.match(
+                re.compile(r"https?://(w{3}\.)?chefkoch\.de/rezepte/\d+/\S+\.html"),
+                input.chefkoch_url(),
+            )
+        ):
+            ui.notification_show("Please provide a valid chefkoch URL!", duration=None)
+        elif not validate_flavor_checkboxes(
+            input.chefkoch_new_sweet,
+            input.chefkoch_new_salty,
+            input.chefkoch_new_liquid,
+        ):
+            ui.notification_show("Please select at least one flavor!", duration=None)
+        else:
+            html = requests.get(input.chefkoch_url()).text
+            soup = BeautifulSoup(html, "html.parser")
 
-        html = requests.get(
-            "https://www.chefkoch.de/rezepte/259781101566295/Kuerbissuppe-mit-Ingwer-und-Kokosmilch.html"
-        ).text
-        soup = BeautifulSoup(html, "html.parser")
+            # Extract title
+            title = soup.h1.text
 
-        # Measures
-        td_tags = soup.find_all(class_="td-left")
-        measures = []
-
-        for td in td_tags:
-            span_tag = td.find("span")
-            if span_tag:
-                measures += [
-                    re.sub(r"\s+", " ", re.sub(r"^\n\s*|\s*$", "", span_tag.text))
+            # Extract ingredients
+            ing_measures = extract_ingredients(soup, "measures")
+            ing_materials = extract_ingredients(soup, "ingredients")
+            ingredients = "<br />".join(
+                [
+                    re.sub(r"^\s", "", " ".join(item))
+                    for item in zip(ing_measures, ing_materials)
                 ]
-            else:
-                measures += [""]
+            )
 
-        td_tags = soup.find_all(class_="td-right")
-        ingredients = []
+            # Extract preparation
+            preparation = re.sub(
+                r"^\n\s*",
+                "",
+                soup.find(class_="rds-recipe-meta").find_next_siblings()[0].text,
+            ).replace("\n", "<br />")
 
-        # Ingredients
-        for td in td_tags:
-            span_tag = td.find("span")
-            if span_tag:
-                ingredients += [
-                    re.sub(r"\s+", " ", re.sub(r"^\n\s*|\s*$", "", span_tag.text))
-                ]
-            else:
-                ingredients += [""]
+            # Extract image path
+            img_url = re.compile(r"https?://\S+").findall(
+                soup.find(class_="i-amphtml-fill-content").get("srcset")
+            )[-1]
+            img_filename = save_image_from_url(img_url)
 
-        # Zubereitung
-        preparation = soup.find(class_="rds-recipe-meta").find_next_siblings()[0].text
-
-        # Image
-        soup.find(class_="i-amphtml-fill-content").get("src")
+            # Insert into database
+            insert_recipe_to_db(
+                title,
+                ingredients,
+                preparation,
+                input.chefkoch_new_sweet(),
+                input.chefkoch_new_salty(),
+                input.chefkoch_new_liquid(),
+                img_filename,
+            )
 
     # Import new recipe
     @reactive.Effect
     @reactive.event(input.import_recipe, ignore_init=True)
-    def import_recipe():
-        insert_statement = """
-            INSERT INTO kochbuch (title, ingredients, preparation, sweet, salty, liquid, img_name)
-            VALUES (:title, :ingredients, :preparation, :sweet, :salty, :liquid, 'food.png');
-        """
+    def import_recipe() -> None:
+        if not validate_flavor_checkboxes(
+            input.new_sweet,
+            input.new_salty,
+            input.new_liquid,
+        ):
+            ui.notification_show("Please select at least one flavor!", duration=None)
+        else:
+            if input.new_image():
+                f: list[FileInfo] = input.new_image()
+                img_name = save_image_from_tmp(f[0]["datapath"])
+            else:
+                img_name = "default.png"
 
-        print("HELLO")
-
-        params = {
-            "title": input.new_title(),
-            "ingredients": input.new_ingredients(),
-            "preparation": input.new_preparation(),
-            "sweet": input.new_sweet(),
-            "salty": input.new_salty(),
-            "liquid": input.new_liquid(),
-        }
-
-        with db_conn.connect() as connection:
-            connection.execute(text(insert_statement), parameters=params)
-            connection.commit()
-
-        # TODO Wenn Textfelder nicht ausgefüllt
-        # TODO Wenn kein Button ausgewählt
+            insert_recipe_to_db(
+                input.new_title(),
+                input.new_ingredients(),
+                input.new_preparation(),
+                input.new_sweet(),
+                input.new_salty(),
+                input.new_liquid(),
+                img_name,
+            )
 
 
 app = App(app_ui, server, static_assets=Path(__file__).parent / "www")

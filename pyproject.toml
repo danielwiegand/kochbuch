@@ -20,6 +20,7 @@ python-dotenv = "^1.0.0"
 ipydatagrid = "^1.2.0"
 beautifulsoup4 = "^4.12.2"
 requests = "^2.31.0"
+pillow = "^10.0.1"
 
 
 [build-system]
