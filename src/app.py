@@ -236,14 +236,14 @@ app_ui = ui.page_fluid(
 
 
 def server(input, output, session):
-    # db_conn = create_engine(
-    #     f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@kochbuch_postgres:5432/{os.getenv('POSTGRES_DB')}"
-    # ).connect()
+    db_conn = create_engine(
+        f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@kochbuch_postgres:5432/{os.getenv('POSTGRES_DB')}"
+    ).connect()
 
     # For running outside docker container (adapt IP address)
-    db_conn = create_engine(
-        f"postgresql://postgres:postgres@172.19.0.2:5432/kochbuch", echo=True
-    )
+    # db_conn = create_engine(
+    #     f"postgresql://postgres:postgres@172.19.0.2:5432/kochbuch", echo=True
+    # )
 
     ### FUNCTIONS ################
 
@@ -254,7 +254,7 @@ def server(input, output, session):
             match = pattern.match(line)
             if match:
                 quantity = re.sub(
-                    r",0$",  # remove training zeros
+                    r",0$",  # remove trailing zeros
                     "",
                     "{:,.1f}".format(  # format to one decimal place, add thousands sep
                         round(
