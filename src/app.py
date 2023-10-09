@@ -15,8 +15,6 @@ from PIL import Image
 from io import BytesIO
 import logging
 
-# TODO Deployment https://shiny.posit.co/py/docs/deploy-on-prem.html#open-source-options
-# TODO Zufälliges Rezept
 
 FILTER_SCOPE_OPTIONS = {
     "Titel": "title",

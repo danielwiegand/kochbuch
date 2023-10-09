@@ -17,6 +17,3 @@ Features:
 * create a .env file where you define POSTGRES_USER, POSTGRES_PASSWORD and POSTGRES_DB
 * run `docker-compose up -d --build`
 * The app should be available on http://localhost:3838
-
-# Deployment
-E.g. via Shiny-Server https://docs.posit.co/shiny-server/
