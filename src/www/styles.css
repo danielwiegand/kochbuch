@@ -1,0 +1,84 @@
+.card-body {
+    padding: 0px 0px 50px 0px;
+    overflow-x: hidden !important;
+}
+
+.title {
+    padding: 10px 0px 10px 10px;
+}
+
+.card-header {
+    min-height: 70px;
+    overflow: hidden;
+}
+
+.card-body {
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0px;
+    padding-right: 0px;
+    padding-bottom: 10px;
+}
+
+.recipe_card {
+    width: 300px;
+    float: left;
+    margin: 10px;
+    height: 271;
+}
+
+.recipe-comment {
+    padding: 20px 80px 20px 80px;
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+    margin-top: 40px;
+    background-color: #E8E8E8;
+}
+
+.card-img-top {
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0px 0px 20px 0px;
+}
+
+.ingredients {
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: 4.16%;
+}
+
+.preparation {
+    max-width: 500px;
+    margin-left: 4.16%;
+    margin-right: auto;
+}
+
+div[data-value="Neues Rezept"] h2 {
+    padding: 20px 0px 20px 0px;
+}
+
+div[data-value="Rezept verändern"] h2 {
+    padding: 20px 0px 20px 0px;
+}
+
+div[data-value="Import von chefkoch.de"] h2 {
+    padding: 20px 0px 20px 0px;
+}
+
+div[data-value="Rezept löschen"] h2 {
+    padding: 20px 0px 20px 0px;
+}
+
+.shiny-input-container {
+    float: left;
+}
+
+.checkbox-container>div {
+    width: 100px !important;
+}
+
+#delete_title {
+    margin-rigt
+}

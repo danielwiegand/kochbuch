@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS kochbuch (
     title VARCHAR(255) UNIQUE,
     ingredients TEXT,
     preparation TEXT,
+    comment TEXT,
     sweet BOOLEAN,
     salty BOOLEAN,
     liquid BOOLEAN,

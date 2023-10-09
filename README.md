@@ -1,23 +1,22 @@
 # kochbuch
 
-# Architektur
-* docker-compose mit Ubuntu + shiny server und postgres-Datenbank
-* Die Shiny-App liegt als Datei im Docker-Container
+## What it is
+A cook book app where you can store, filter and access your recipes.
+Features:
+* Manage your recipes without relying on a proprietary website
+* Filter recipes based on flavor ("sweet", "salty" etc) or on keywords (e.h. "zucchini")
+* Multiply the given amount of ingredients according to your needs
+* Direct recipe import from `chefkoch.de`
 
-# Shiny-Server
-https://docs.posit.co/shiny-server/
+## Architecture
+* Shiny-Python app (https://shiny.posit.co/py/)
+* Runs inside docker containers
+* Postgres database to store the recipes
 
-# Features
-* Zufälliges Rezept
-* Exportmöglichkeit pdf
-* Code in Module unterteilen
+## How to use
+* create a .env file where you define POSTGRES_USER, POSTGRES_PASSWORD and POSTGRES_DB
+* run `docker-compose up -d --build`
+* The app should be available on http://localhost:3838
 
 # Deployment
-Siehe https://shiny.posit.co/py/docs/deploy-on-prem.html#open-source-options
-
-
-INSERT INTO kochbuch (title, ingredients, preparation, sweet, salty, liquid, img_name)
-VALUES
-    ('Rezept A', 'Zucchini, Tomaten', 'cook', True, False, False, 'food.png'),
-    ('Rezept B', 'Banane', 'boil', False, True, False, 'food2.jpg'),
-    ('Rezept C', 'Chili', 'raw', False, True, True, 'food3.jpg');
+E.g. via Shiny-Server https://docs.posit.co/shiny-server/

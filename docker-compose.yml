@@ -8,7 +8,7 @@ services:
     ports:
       - 3838:3838
     volumes:
-      - ./kochbuch/:/srv/shiny-server/
+      - ./src/:/srv/shiny-server/
       - ./:/app/
     tty: true
     restart: always
