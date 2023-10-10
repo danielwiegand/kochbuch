@@ -17,3 +17,4 @@ Features:
 * create a .env file where you define POSTGRES_USER, POSTGRES_PASSWORD and POSTGRES_DB
 * run `docker-compose up -d --build`
 * The app should be available on http://localhost:3838
+* When you get the error `no such file or directory, /app/.venv/bin/python`, the poetry environment did not properly load. Log into the container (`docker exec -it shiny_kochbuch bash`), go to kochbuch (`cd kochbuch`) and execute `poetry config virtualenvs.in-project true` and `poetry install`. Then rebuild the docker compose pipeline.
