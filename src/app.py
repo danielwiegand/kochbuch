@@ -241,11 +241,11 @@ app_ui = ui.page_fluid(
 def server(input, output, session):
     db_conn = create_engine(
         f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@kochbuch_postgres:5432/{os.getenv('POSTGRES_DB')}"
-    ).connect()
+    )
 
     # For running outside docker container (adapt IP address)
     # db_conn = create_engine(
-    #     f"postgresql://postgres:postgres@172.19.0.2:5432/kochbuch", echo=True
+    #     f"postgresql://postgres:postgres@172.31.0.2:5432/kochbuch", echo=True
     # )
 
     ### FUNCTIONS ################
@@ -321,7 +321,7 @@ def server(input, output, session):
         response = requests.get(url)
         if response.status_code == 200:
             img_filename = get_image_filename(url)
-            save_path = f"src/www/{img_filename}"
+            save_path = f"www/{img_filename}"
             Image.open(BytesIO(response.content)).save(save_path)
             logging.info(f"Image saved to {save_path}")
         else:
@@ -331,7 +331,7 @@ def server(input, output, session):
 
     def save_image_from_tmp(img_path: str) -> str:
         img_filename = get_image_filename(img_path)
-        save_path = f"src/www/{img_filename}"
+        save_path = f"www/{img_filename}"
         shutil.move(img_path, save_path)
         return img_filename
 
