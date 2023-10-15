@@ -325,7 +325,7 @@ def server(input, output, session):
             Image.open(BytesIO(response.content)).save(save_path)
             logging.info(f"Image saved to {save_path}")
         else:
-            img_filename = "default.png"
+            img_filename = "default.jpeg"
             logging.error(f"Failed to download image from {url}! Using default image.")
         return img_filename
 
@@ -451,7 +451,7 @@ def server(input, output, session):
     def recipe_image():
         img = selected_recipe()["img_name"]
         return (
-            ui.tags.img(src="default.png") if img.empty else ui.tags.img(src=img.item())
+            ui.tags.img(src="default.jpeg") if img.empty else ui.tags.img(src=img.item())
         )
 
     @output
@@ -634,7 +634,7 @@ def server(input, output, session):
                 f: list[FileInfo] = input.new_image()
                 img_name = save_image_from_tmp(f[0]["datapath"])
             else:
-                img_name = "default.png"
+                img_name = "default.jpeg"
 
             insert_recipe_to_db(
                 input.new_title(),

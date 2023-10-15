@@ -3,6 +3,7 @@ __pycache__/
 poetry.lock
 .env
 .vscode/
-src/www/
+src/www/*
+!/src/www/default.jpeg
 logs/
 database/
