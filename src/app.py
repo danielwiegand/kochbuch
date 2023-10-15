@@ -14,6 +14,7 @@ import re
 from PIL import Image
 from io import BytesIO
 import logging
+from dotenv import load_dotenv
 
 
 FILTER_SCOPE_OPTIONS = {
@@ -25,6 +26,8 @@ FILTER_SCOPE_OPTIONS = {
 FILTER_FLAVOR_OPTIONS = {"süß": "sweet", "salzig": "salty", "flüssig": "liquid"}
 
 css_path = Path(__file__).parent / "www" / "styles.css"
+
+load_dotenv("/app/.env")
 
 
 ### UI ###############################

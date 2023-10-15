@@ -9,7 +9,7 @@ services:
       - 3838:3838
     volumes:
       - ./src/:/srv/shiny-server/
-      - ./:/app/
+      - ./logs:/var/log/shiny-server/
     tty: true
     restart: always
     environment:

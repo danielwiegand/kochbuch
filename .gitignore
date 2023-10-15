@@ -1,4 +1,7 @@
-.venv/
 __pycache__/
+.venv/
 .env
-kochbuch/www/
+.vscode/
+src/www/
+logs/
+database/
