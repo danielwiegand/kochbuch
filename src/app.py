@@ -245,7 +245,7 @@ def server(input, output, session):
 
     # For running outside docker container (adapt IP address)
     # db_conn = create_engine(
-    #     f"postgresql://postgres:postgres@172.31.0.2:5432/kochbuch", echo=True
+    #     f"postgresql://postgres:postgres@172.18.0.2:5432/kochbuch", echo=True
     # )
 
     ### FUNCTIONS ################
@@ -294,7 +294,7 @@ def server(input, output, session):
                 "title": title,
                 "ingredients": ingredients,
                 "preparation": preparation,
-                "comment": comment,
+                "comment": comment.replace("\n", "<br />"),
                 "sweet": sweet,
                 "salty": salty,
                 "liquid": liquid,
@@ -432,7 +432,9 @@ def server(input, output, session):
                                 ui.div(
                                     {"class": "recipe-comment"},
                                     ui.h5("Kommentar"),
-                                    recipe.comment,
+                                    ui.HTML(
+                                        recipe.comment
+                                    ),
                                 ),
                             ),
                             fillable=False,
