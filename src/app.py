@@ -511,13 +511,18 @@ def server(input, output, session):
     @reactive.Effect
     @reactive.event(input.delete_recipe)
     def delete_recipe():
-        delete_statement = "DELETE FROM kochbuch WHERE title = :title;"
-        print(recipe_data()["title"].tolist())
         if input.delete_title() not in recipe_data()["title"].tolist():
             ui.notification_show("The recipe does not seem to exist!", duration=None)
         else:
+            img_name_statement = "SELECT img_name FROM kochbuch WHERE title = :title;"
+            delete_statement = "DELETE FROM kochbuch WHERE title = :title;"
             params = {"title": input.delete_title()}
             with db_conn.connect() as connection:
+                img_name = connection.execute(
+                    text(img_name_statement), parameters=params
+                )
+                if os.path.isfile(f"www/{img_name}"):
+                    os.remove(f"www/{img_name}")
                 connection.execute(text(delete_statement), parameters=params)
                 connection.commit()
             ui.notification_show(
