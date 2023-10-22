@@ -245,14 +245,14 @@ def server(input, output, session):
 
     # For running outside docker container (adapt IP address)
     # db_conn = create_engine(
-    #     f"postgresql://postgres:postgres@172.18.0.2:5432/kochbuch", echo=True
+    #     f"postgresql://postgres:postgres@172.18.0.3:5432/kochbuch", echo=True
     # )
 
     ### FUNCTIONS ################
 
     def multiply_ingredient_quantities(ingredients: str, multiply_factor: float) -> str:
         pattern = re.compile(r"([\d,]+)\s*(.*)")
-        lines = ingredients.strip().split("<br />")
+        lines = [line.strip() for line in ingredients.split("<br />")] 
         for i, line in enumerate(lines):
             match = pattern.match(line)
             if match:
@@ -446,44 +446,6 @@ def server(input, output, session):
             ]
         return tuple(recipe_cards)
 
-    ### OUTPUTS ######################
-
-    @output
-    @render.ui
-    def recipe_image():
-        img = selected_recipe()["img_name"]
-        return (
-            ui.tags.img(src="default.jpeg") if img.empty else ui.tags.img(src=img.item())
-        )
-
-    @output
-    @render.ui
-    def recipe_title():
-        return (
-            ""
-            if selected_recipe()["title"].empty
-            else ui.h1(selected_recipe()["title"].item())
-        )
-
-    @output
-    @render.ui
-    def ingredients():
-        ingredients = selected_recipe()["ingredients"]
-        if ingredients.empty:
-            return ""
-        else:
-            print(ingredients.item())
-            return ui.HTML(
-                multiply_ingredient_quantities(
-                    ingredients.item(), input.quantity_factor()
-                )
-            )
-
-    @output
-    @render.ui
-    def preparation():
-        preparation = selected_recipe()["preparation"]
-        return "" if preparation.empty else ui.HTML(preparation.item())
 
     ### EFFECTS AND EVENTS ##############
 
@@ -614,7 +576,7 @@ def server(input, output, session):
                 title,
                 ingredients,
                 preparation,
-                input.chefkoch_new_comment(),
+                input.chefkoch_new_comment().replace("\n", "<br />"),
                 input.chefkoch_new_sweet(),
                 input.chefkoch_new_salty(),
                 input.chefkoch_new_liquid(),
@@ -640,9 +602,9 @@ def server(input, output, session):
 
             insert_recipe_to_db(
                 input.new_title(),
-                input.new_ingredients(),
-                input.new_preparation(),
-                input.new_comment(),
+                input.new_ingredients().replace("\n", "<br />"),
+                input.new_preparation().replace("\n", "<br />"),
+                input.new_comment().replace("\n", "<br />"),
                 input.new_sweet(),
                 input.new_salty(),
                 input.new_liquid(),
