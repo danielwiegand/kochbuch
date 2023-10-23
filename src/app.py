@@ -310,17 +310,14 @@ def server(input, output, session):
                 duration=None,
             )
 
-    def get_image_filename(img_path: str) -> int:
-        img_id = pd.read_sql(
-            "SELECT COUNT(*) FROM kochbuch;",
-            db_conn,
-        ).iloc[0, 0]
-        return str(img_id) + "." + re.findall(r"\.(\w+)$", img_path)[0]
+    def get_image_filename(img_path: str, recipe_name: str) -> str:
+        img_id = re.sub(r"\W", "", recipe_name)
+        return img_id + "." + re.findall(r"\.(\w+)$", img_path)[0]
 
-    def save_image_from_url(url: str) -> None:
+    def save_image_from_url(url: str, recipe_name: str) -> None:
         response = requests.get(url)
         if response.status_code == 200:
-            img_filename = get_image_filename(url)
+            img_filename = get_image_filename(url, recipe_name)
             save_path = f"www/{img_filename}"
             Image.open(BytesIO(response.content)).save(save_path)
             logging.info(f"Image saved to {save_path}")
@@ -329,8 +326,8 @@ def server(input, output, session):
             logging.error(f"Failed to download image from {url}! Using default image.")
         return img_filename
 
-    def save_image_from_tmp(img_path: str) -> str:
-        img_filename = get_image_filename(img_path)
+    def save_image_from_tmp(img_path: str, recipe_name: str) -> str:
+        img_filename = get_image_filename(img_path, recipe_name)
         save_path = f"www/{img_filename}"
         shutil.move(img_path, save_path)
         return img_filename
@@ -514,15 +511,9 @@ def server(input, output, session):
         if input.delete_title() not in recipe_data()["title"].tolist():
             ui.notification_show("The recipe does not seem to exist!", duration=None)
         else:
-            img_name_statement = "SELECT img_name FROM kochbuch WHERE title = :title;"
             delete_statement = "DELETE FROM kochbuch WHERE title = :title;"
             params = {"title": input.delete_title()}
             with db_conn.connect() as connection:
-                img_name = connection.execute(
-                    text(img_name_statement), parameters=params
-                )
-                if os.path.isfile(f"www/{img_name}"):
-                    os.remove(f"www/{img_name}")
                 connection.execute(text(delete_statement), parameters=params)
                 connection.commit()
             ui.notification_show(
@@ -574,7 +565,7 @@ def server(input, output, session):
             img_url = re.compile(r"https?://\S+").findall(
                 soup.find(class_="i-amphtml-fill-content").get("srcset")
             )[-1]
-            img_filename = save_image_from_url(img_url)
+            img_filename = save_image_from_url(img_url, title)
 
             # Insert into database
             insert_recipe_to_db(
@@ -601,7 +592,7 @@ def server(input, output, session):
         else:
             if input.new_image():
                 f: list[FileInfo] = input.new_image()
-                img_name = save_image_from_tmp(f[0]["datapath"])
+                img_name = save_image_from_tmp(f[0]["datapath"], input.new_title())
             else:
                 img_name = "default.jpeg"
 
