@@ -37,8 +37,8 @@ app_ui = ui.page_fluid(
     ui.div(
         {"class": "title"},
         ui.panel_title(
-            title="Der Milberts-Ofen",
-            window_title="Der Milberts-Ofen",
+            title="Kochbuch",
+            window_title="Kochbuch",
         ),
     ),
     ui.navset_tab(
