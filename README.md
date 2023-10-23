@@ -1,5 +1,7 @@
 # kochbuch
 
+![Screenshot of the app](src/www/kochbuch_screenshot.png)
+
 ## What it is
 A cook book app where you can store, filter and access your recipes.
 Features:
