@@ -4,6 +4,7 @@ poetry.lock
 .env
 .vscode/
 src/www/*
+!/src/www/styles.css
 !/src/www/default.jpeg
 !/src/www/kochbuch_screenshot.png
 logs/

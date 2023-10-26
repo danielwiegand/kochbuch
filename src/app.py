@@ -396,7 +396,6 @@ def server(input, output, session):
     def recipe_cards():
         recipe_cards = []
         for recipe in filtered_recipes().itertuples():
-            print(recipe)
             recipe_cards += [
                 ui.div(
                     {"class": "recipe_card"},
@@ -482,7 +481,6 @@ def server(input, output, session):
 
     @reactive.Effect
     def update_base_table():
-        print(type(cell_changes()))
         query = text(
             f"""
                 UPDATE kochbuch
